@@ -1,16 +1,16 @@
 module Index exposing (main)
 
 import Browser
-import Browser.Dom as Dom exposing (setViewport)
+import Browser.Events
 import Element exposing (Attribute, Color, Element, Length, alignTop, centerX, centerY, column, el, explain, fill, height, image, layout, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, rgb255, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
-import Element.Font as Font exposing (bold, family, size)
+import Element.Font as Font exposing (bold, center, family, justify, size)
 import Html exposing (Html)
-import Task
+import Json.Decode as Decode exposing (Decoder, Value, field, int, map2)
 
 
-main : Program () Model Msg
+main : Program Value Model Msg
 main =
     Browser.element
         { init = init
@@ -24,13 +24,57 @@ main =
 -- INIT
 
 
+type alias BaseSpace =
+    Int
+
+
+type alias BaseFontSize =
+    Float
+
+
+type alias Height =
+    Int
+
+
+type alias Width =
+    Int
+
+
+type alias WindowDimensions =
+    { height : Int
+    , width : Int
+    }
+
+
+windowDimensionsDecoder : Decoder WindowDimensions
+windowDimensionsDecoder =
+    Decode.map2 WindowDimensions (field "height" int) (field "width" int)
+
+
 type alias Model =
-    Bool
+    { windowDimensions : WindowDimensions
+    , baseSpace : BaseSpace
+    , baseFontSize : BaseFontSize
+    }
 
 
-init : flags -> ( Model, Cmd Msg )
-init _ =
-    ( True, Cmd.none )
+init : Value -> ( Model, Cmd Msg )
+init flags =
+    let
+        windowDimensions =
+            case Decode.decodeValue windowDimensionsDecoder flags of
+                Ok wD ->
+                    wD
+
+                Err _ ->
+                    { height = 0, width = 0 }
+    in
+    ( { windowDimensions = windowDimensions
+      , baseSpace = updateBaseSpace windowDimensions.width
+      , baseFontSize = updateBaseFontSize windowDimensions.width
+      }
+    , Cmd.none
+    )
 
 
 
@@ -38,18 +82,39 @@ init _ =
 
 
 type Msg
-    = HomeClicked
-    | NoOp
+    = GotNewWindowDimensions Width Height
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        HomeClicked ->
-            ( model, Task.perform (\_ -> NoOp) (Dom.setViewport 0 0) )
+        GotNewWindowDimensions width height ->
+            ( { model
+                | windowDimensions = { height = height, width = width }
+                , baseFontSize = updateBaseFontSize width
+                , baseSpace = updateBaseSpace width
+              }
+            , Cmd.none
+            )
 
-        NoOp ->
-            ( model, Cmd.none )
+
+updateBaseFontSize : Width -> BaseFontSize
+updateBaseFontSize width =
+    width
+        |> Basics.toFloat
+        |> (*) 0.01
+        |> (+) 16
+        |> min 36
+
+
+updateBaseSpace : Width -> BaseSpace
+updateBaseSpace width =
+    width
+        |> Basics.toFloat
+        |> (*) 0.01
+        |> (+) 16
+        |> round
+        |> min 40
 
 
 
@@ -58,35 +123,25 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    Browser.Events.onResize GotNewWindowDimensions
 
 
 
 -- VIEW
 
 
-baseSpace : Int
-baseSpace =
-    20
-
-
-spaces : Int -> Int
-spaces multiple =
+spaces : BaseSpace -> Int -> Int
+spaces baseSpace multiple =
     baseSpace * multiple
 
 
-spacesPx : Int -> Length
-spacesPx =
-    spaces >> px
+spacesPx : BaseSpace -> Int -> Length
+spacesPx baseSpace =
+    spaces baseSpace >> px
 
 
-baseFontSize : Float
-baseFontSize =
-    16
-
-
-scaledFontSize : Int -> Int
-scaledFontSize =
+scaledFontSize : BaseFontSize -> Int -> Int
+scaledFontSize baseFontSize =
     Element.modular baseFontSize 1.25
         >> Basics.round
 
@@ -102,35 +157,37 @@ standardColours =
 
 
 view : Model -> Html Msg
-view _ =
+view model =
     layout
         [ Background.color standardColours.darkGrey ]
         (Element.column
             [ width fill ]
-            [ header
-            , pictureSeparator "../images/elephantFrieze.jpg"
+            [ header model.baseFontSize model.baseSpace
+            , pictureSeparator model.baseSpace "images/elephantFrieze.jpg"
             , column
                 [ centerX
-                , width (fill |> maximum 600)
+                , paddingXY (spaces model.baseSpace 4) (spaces model.baseSpace 4)
+                , spacing (spaces model.baseSpace 4)
+                , width (fill |> maximum 800)
                 ]
-                [ overview
-                , theWilasaLife
-                , otherFeatures
-                , amenities
-                , pricing
-                , visitUs
+                [ overview model.baseFontSize model.baseSpace
+                , theWilasaLife model.baseFontSize model.baseSpace
+                , otherFeatures model.baseFontSize model.baseSpace
+                , amenities model.baseFontSize model.baseSpace
+                , pricing model.baseFontSize model.baseSpace
+                , visitUs model.baseFontSize model.baseSpace
                 ]
-            , footer
+            , footer model.baseFontSize model.baseSpace
             ]
         )
 
 
-header : Element Msg
-header =
+header : BaseFontSize -> BaseSpace -> Element Msg
+header baseFontSize baseSpace =
     column
         [ Background.color standardColours.red
         , height (fill |> minimum 600)
-        , paddingXY 0 (spaces 4)
+        , paddingXY 0 (spaces baseSpace 4)
         , spaceEvenly
         , width fill
         ]
@@ -139,7 +196,7 @@ header =
             , centerY
             , width (fill |> maximum 320)
             ]
-            { src = "../images/logoNoBackground.png", description = "Wilasa Logo" }
+            { src = "images/logoNoBackground.png", description = "Wilasa Logo" }
         , el
             [ alignTop
             , Border.color standardColours.offWhite
@@ -147,91 +204,86 @@ header =
             , Border.width 1
             , Border.rounded 2
             , centerX
-            , paddingXY (spaces 1) (spaces 1)
+            , paddingXY (spaces baseSpace 1) (spaces baseSpace 1)
             ]
-            (Element.link (centerY :: contentAttributes) { url = "tel:08047108861", label = text "CALL US ON 080 4710 8861" })
+            (Element.link (centerY :: contentAttributes baseFontSize) { url = "tel:08047108861", label = text "CALL US ON 080 4710 8861" })
         ]
 
 
-pictureSeparator : String -> Element Msg
-pictureSeparator src =
+pictureSeparator : BaseSpace -> String -> Element Msg
+pictureSeparator baseSpace src =
     el
         [ Background.image src
         , Border.solid
         , Border.color standardColours.darkGrey
         , Border.widthEach { top = 1, right = 0, bottom = 0, left = 0 }
-        , height (spacesPx 10)
+        , height (spacesPx baseSpace 6)
         , width fill
         ]
         Element.none
 
 
-overview : Element Msg
-overview =
+overview : BaseFontSize -> BaseSpace -> Element Msg
+overview baseFontSize baseSpace =
     column
-        [ paddingXY (spaces 4) (spaces 4)
-        , spacing (spaces 2)
+        [ spacing (spaces baseSpace 2)
         ]
-        [ sectionHeading "Overview"
-        , contentParagraph "Wilasa is a serene, low-rise, ready-to-occupy housing complex just off Kanakapura Road, only a few hundred meters from the Konanakunte Signal. Only a hundred and thirty-four spacious apartments occupy the nearly five acre plot. With greenery all around — inside and outside your home — Wilasa gives you room to breathe, and indeed, revel in."
+        [ sectionHeading baseFontSize "Overview"
+        , contentParagraph baseFontSize "Wilasa is a serene, low-rise, ready-to-occupy housing complex just off Kanakapura Road, only a few hundred meters from the Konanakunte Signal. Only a hundred and thirty-four spacious apartments occupy the nearly five acre plot. With greenery all around — inside and outside your home — Wilasa gives you room to breathe, and indeed, revel in."
         ]
 
 
-sectionHeading : String -> Element Msg
-sectionHeading title =
-    el
+sectionHeading : BaseFontSize -> String -> Element Msg
+sectionHeading baseFontSize title =
+    paragraph
         [ Font.color standardColours.brown
-        , Font.size (scaledFontSize 4)
+        , Font.size (scaledFontSize baseFontSize 4)
         , Font.family
             [ Font.typeface "Source Serif Pro"
             ]
         ]
-        (text title)
+        [ text title ]
 
 
-topicParagraph : String -> List (Element Msg) -> Element Msg
-topicParagraph title content =
+topicParagraph : BaseFontSize -> BaseSpace -> String -> List (Element Msg) -> Element Msg
+topicParagraph baseFontSize baseSpace title content =
     column
-        [ paddingEach
-            { top = 0
-            , right = spaces 4
-            , bottom = spaces 4
-            , left = spaces 4
-            }
-        , spacing (spaces 2)
+        [ spacing (spaces baseSpace 2)
         ]
-        (sectionHeading title :: content)
+        (sectionHeading baseFontSize title :: content)
 
 
-contentAttributes : List (Attribute Msg)
-contentAttributes =
+contentAttributes : BaseFontSize -> List (Attribute Msg)
+contentAttributes baseFontSize =
     [ Font.color standardColours.offWhite
-    , Font.size (scaledFontSize 1)
+    , Font.size (scaledFontSize baseFontSize 1)
     , Font.family [ Font.typeface "Source Sans Pro" ]
-    , spacing (scaledFontSize 1)
+    , spacing (scaledFontSize baseFontSize 1)
     ]
 
 
-contentParagraph : String -> Element Msg
-contentParagraph content =
-    paragraph contentAttributes [ text content ]
+contentParagraph : BaseFontSize -> String -> Element Msg
+contentParagraph baseFontSize content =
+    paragraph (contentAttributes baseFontSize) [ text content ]
 
 
-subheading : String -> Element Msg
-subheading content =
+subheading : BaseFontSize -> String -> Element Msg
+subheading baseFontSize content =
     el
         [ Font.color standardColours.offWhite
-        , Font.size (scaledFontSize 1)
+        , Font.size (scaledFontSize baseFontSize 1)
         , Font.family [ Font.typeface "Source Sans Pro" ]
         , Font.bold
         ]
         (text content)
 
 
-theWilasaLife : Element Msg
-theWilasaLife =
-    topicParagraph "The Wilasa Life"
-        (List.map contentParagraph
+theWilasaLife : BaseFontSize -> BaseSpace -> Element Msg
+theWilasaLife baseFontSize baseSpace =
+    topicParagraph baseFontSize
+        baseSpace
+        "The Wilasa Life"
+        (List.map (contentParagraph baseFontSize)
             [ "We take pride in the greenery in Wilasa. Every home either has a garden or looks out onto one. The common areas host large swathes of green, landscaped gardens, giving us a sense of living amidst nature"
             , "The houses are between 2,000 and 4,000 sq. ft. in size, with either 3 or 4 bedrooms each. There's room enough in each of them to stretch your legs out, and also work without distractions."
             , "Wilasa has all the amenities that high-rise apartments offer, including a luxurious club-house, a well-equipped gym, a beautiful swimming pool, and 24-hour security and maintenance. However, each block rises only about 50 feet, and affords you almost the same amount of privacy that an individual home can offer. Thus, Wilasa strikes a balance between apartment living and individual-home living."
@@ -239,16 +291,18 @@ theWilasaLife =
         )
 
 
-otherFeatures : Element Msg
-otherFeatures =
-    topicParagraph "Other Features"
-        [ paragraph contentAttributes
+otherFeatures : BaseFontSize -> BaseSpace -> Element Msg
+otherFeatures baseFontSize baseSpace =
+    topicParagraph baseFontSize
+        baseSpace
+        "Other Features"
+        [ paragraph (contentAttributes baseFontSize)
             [ text "Other notable features include:"
             , column
                 [ paddingEach { top = baseSpace, right = 0, left = baseSpace, bottom = 0 }
-                , spacing (spaces 2)
+                , spacing (spaces baseSpace 2)
                 ]
-                (List.map contentParagraph
+                (List.map (contentParagraph baseFontSize)
                     [ "• All vehicular traffic in Wilasa is underground, freeing up the area above for walks, play and community."
                     , "• Wilasa is located a 100 metres from the nearest metro station, a couple of hundred metres from a top-notch hospital, a few hundred metres from schools like Kumaran's and a couple of kilometres from Delhi Public School and The Valley School. The upcoming Forum Mall and Mantri Mall are minutes away, as is NICE road."
                     , "• Wilasa is pre-certified as a 'green' building by the Indian Green Building Council. With green building procedures, rainwater harvesting systems, grey-water recycling systems, a solar electricity plant that powers the lights of the entire basement, and adoption of garbage segregation methodologies, Wilasa is a decidedly green project."
@@ -258,18 +312,20 @@ otherFeatures =
         ]
 
 
-amenities : Element Msg
-amenities =
-    topicParagraph "Amenities"
+amenities : BaseFontSize -> BaseSpace -> Element Msg
+amenities baseFontSize baseSpace =
+    topicParagraph baseFontSize
+        baseSpace
+        "Amenities"
         [ paragraph
-            contentAttributes
+            (contentAttributes baseFontSize)
             [ text "Wilasa has all the amenities that can be found in large, high-rise apartment complexes, including:"
             ]
         , column
-            [ paddingEach { top = 0, right = 0, left = spaces 1, bottom = 0 }
-            , spacing (spaces 1)
+            [ paddingEach { top = 0, right = 0, left = spaces baseSpace 1, bottom = 0 }
+            , spacing (spaces baseSpace 1)
             ]
-            (List.map contentParagraph
+            (List.map (contentParagraph baseFontSize)
                 [ "• Centralised piped cooking gas"
                 , "• A luxurious Club House with 1 indoor and 2 outdoor party areas"
                 , "• An indoor games area with a pool table and board games"
@@ -288,45 +344,47 @@ amenities =
         ]
 
 
-pricing : Element Msg
-pricing =
-    topicParagraph "Pricing" [ contentParagraph "Prices start at ₹ 9,500/sq. ft. Other terms and conditions apply." ]
+pricing : BaseFontSize -> BaseSpace -> Element Msg
+pricing baseFontSize baseSpace =
+    topicParagraph baseFontSize baseSpace "Pricing" [ contentParagraph baseFontSize "Prices start at ₹ 9,500/sq. ft. Other terms and conditions apply." ]
 
 
-visitUs : Element Msg
-visitUs =
-    topicParagraph "Visit Us"
+visitUs : BaseFontSize -> BaseSpace -> Element Msg
+visitUs baseFontSize baseSpace =
+    topicParagraph baseFontSize
+        baseSpace
+        "Visit Us"
         [ column
-            [ spacing (spaces 2) ]
-            [ paragraph []
-                [ subheading "Address: "
-                , contentParagraph "Wilasa Grand Villaments, 11th Kilometre, Kanakapura Road, Doddakallasandra, Bangalore 560 062"
+            [ spacing (spaces baseSpace 2) ]
+            (List.map (paragraph [])
+                [ [ subheading baseFontSize "Address: "
+                  , contentParagraph baseFontSize "Wilasa Grand Villaments, 11th Kilometre, Kanakapura Road, Doddakallasandra, Bangalore 560 062"
+                  ]
+                , [ subheading baseFontSize "Directions: "
+                  , Element.newTabLink (contentAttributes baseFontSize) { url = "https://g.page/Wilasa?share", label = text "Open Google Maps in a new tab" }
+                  ]
+                , [ subheading baseFontSize "Phone number: "
+                  , Element.link (contentAttributes baseFontSize) { url = "tel:08047108861", label = text "080 4710 8861" }
+                  ]
+                , [ subheading baseFontSize "Email: "
+                  , Element.link (contentAttributes baseFontSize) { url = "mailto:info@wilasa.in", label = text "info@wilasa.in" }
+                  ]
                 ]
-            , paragraph []
-                [ subheading "Directions: "
-                , Element.newTabLink contentAttributes { url = "https://g.page/Wilasa?share", label = text "Open Google Maps in a new tab" }
-                ]
-            , paragraph []
-                [ subheading "Phone number: "
-                , Element.link contentAttributes { url = "tel:08047108861", label = text "080 4710 8861" }
-                ]
-            , paragraph []
-                [ subheading "Email: "
-                , Element.link contentAttributes { url = "mailto:info@wilasa.in", label = text "info@wilasa.in" }
-                ]
-            ]
+            )
         ]
 
 
-footer : Element Msg
-footer =
+footer : BaseFontSize -> BaseSpace -> Element Msg
+footer baseFontSize baseSpace =
     column
         ([ Background.color standardColours.red
-         , height (spacesPx 14)
+         , height (spacesPx baseSpace 14)
          , width fill
          ]
-            ++ contentAttributes
+            ++ contentAttributes baseFontSize
         )
-        [ el [ centerX, centerY ] (text "© 2020 M/s G R Nataraj HUF. All rights reserved.")
-        , el [ centerX, centerY ] (text "Terms of use apply.")
-        ]
+        (List.map (paragraph [ centerX, centerY, center ])
+            [ [ text "© 2020 M/s G R Nataraj HUF. All rights reserved." ]
+            , [ text "Terms of use apply." ]
+            ]
+        )

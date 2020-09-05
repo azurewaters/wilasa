@@ -7,7 +7,8 @@
     "cleanup": "rm -r dist/*",
     "copyAssets": "mkdir dist/images && cp source/images/* dist/images/",
     "start": "npm run cleanup && npm run copyAssets && parcel source/index.html",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run cleanup && npm run copyAssets && parcel build source/index.html --public-url ./"
   },
   "repository": {
     "type": "git",
