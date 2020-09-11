@@ -1,1 +1,145 @@
 @import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,400;0,700;1,400&family=Source+Serif+Pro:wght@600&display=swap");
+
+$standardRed: rgb(193, 36, 44);
+$standardBrown: rgb(194, 166, 117);
+$standardOffWhite: rgb(242, 234, 223);
+$standardLightGrey: rgb(180, 180, 180);
+$standardDarkGrey: rgb(13, 13, 13);
+
+$standardBodyFont: "Source Sans Pro", "Roboto", "San Francisco", "Helvetica Neue", Arial, sans-serif;
+$standardTitelFont: "Source Serif Pro", "Times New Roman", serif;
+
+body {
+  --changeRate: 0.5vw;
+  --baseFontSize: calc(13.75px + var(--changeRate));
+
+  background-color: $standardDarkGrey;
+  min-height: 100vh;
+
+  color: $standardOffWhite;
+  font: {
+    family: $standardBodyFont;
+    size: var(--baseFontSize);
+  }
+
+  letter-spacing: calc(0.25px + 0.025vw);
+  line-height: calc(30px + 1vw);
+}
+
+a {
+  color: $standardOffWhite;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+li {
+  padding-bottom: calc(20px + var(--changeRate));
+}
+
+header {
+  background-color: $standardRed;
+  display: grid;
+  grid-template-rows: 50vh 20vh min-content;
+  gap: 2rem;
+
+  justify-items: center;
+
+  #logo {
+    align-self: center;
+    max-width: 320px;
+    width: 60vw;
+  }
+
+  #callUs {
+    align-self: center;
+    border: solid 1px $standardOffWhite;
+    border-radius: 2px;
+    padding: 1rem 2rem;
+  }
+
+  .pictureSeparator#one {
+    align-self: end;
+  }
+}
+
+.pictureSeparator {
+  background: {
+    size: cover;
+    position: center;
+    repeat: no-repeat;
+  }
+  height: calc(20vh + (var(--changeRate) * 2));
+  width: 100vw;
+}
+
+#one {
+  background-image: url("../images/elephantFrieze.jpg");
+  border-top: solid 1px $standardDarkGrey;
+}
+
+#two {
+  background-image: url("../images/urbanSpace.png");
+  border-bottom: solid 1px $standardDarkGrey;
+}
+
+main {
+  display: grid;
+  row-gap: calc(5vh + var(--changeRate));
+  justify-items: center;
+  padding: {
+    top: min(calc(10vh + var(--changeRate)), 200px);
+    bottom: min(20vw, 40px);
+  }
+}
+
+.topicSection {
+  width: min(80vw, 800px);
+
+  .heading {
+    color: $standardBrown;
+    font: {
+      family: $standardTitelFont;
+      size: calc(var(--baseFontSize) * 2);
+    }
+    letter-spacing: 0;
+  }
+}
+
+.lineHeading {
+  font-weight: bold;
+  padding-right: 0.125rem;
+}
+
+.pictureHolder {
+  img {
+    width: min(100vw, 800px);
+  }
+}
+
+.topicSection#video {
+  display: grid;
+  // width: 100vw;
+
+  iframe {
+    justify-self: center;
+    height: clamp(90px, calc((315 / 560) * 100vw), 450px);
+    width: clamp(80%, 100vw, 800px);
+  }
+}
+
+footer {
+  background-color: $standardRed;
+  color: $standardOffWhite;
+  text-align: center;
+
+  display: grid;
+  grid-template-rows: min-content 40vh;
+  justify-items: center;
+
+  #legalese {
+    align-self: center;
+  }
+}

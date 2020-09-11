@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "cleanup": "rm -r public/*",
-    "copyAssets": "mkdir public/images && cp source/images/* public/images/",
+    "copyAssets": "mkdir public/images && cp -r source/images/* public/images/",
     "start": "npm run cleanup && npm run copyAssets && parcel source/index.html --out-dir public",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npm run cleanup && npm run copyAssets && parcel build source/index.html --public-url ./ --out-dir public"
@@ -34,5 +34,7 @@
     "parcel-bundler": "^1.12.4",
     "sass": "^1.26.10"
   },
-  "dependencies": {}
+  "dependencies": {
+    "normalize.css": "^8.0.1"
+  }
 }
