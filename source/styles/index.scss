@@ -9,6 +9,10 @@ $standardDarkGrey: rgb(13, 13, 13);
 $standardBodyFont: "Source Sans Pro", "Roboto", "San Francisco", "Helvetica Neue", Arial, sans-serif;
 $standardTitelFont: "Source Serif Pro", "Times New Roman", serif;
 
+* {
+  box-sizing: border-box;
+}
+
 body {
   --changeRate: 0.5vw;
   --baseFontSize: calc(13.75px + var(--changeRate));
@@ -121,12 +125,56 @@ main {
 
 .topicSection#video {
   display: grid;
-  // width: 100vw;
 
   iframe {
     justify-self: center;
     height: clamp(90px, calc((315 / 560) * 100vw), 450px);
     width: clamp(80%, 100vw, 800px);
+  }
+}
+
+.slidesContainer {
+  display: block;
+  position: relative;
+  height: min(75vw, 600px);
+  width: 100%;
+
+  .slide {
+    height: 100%;
+    width: 100%;
+
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 1s;
+    transition-timing-function: ease-out;
+
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    display: grid;
+    grid-template-rows: 1fr min-content;
+
+    .image {
+      background-position: center center;
+      background-size: contain;
+      background-repeat: no-repeat no-repeat;
+    }
+
+    .description {
+      font-size: calc(0.7 * var(--baseFontSize));
+      padding: 20px;
+      text-align: start;
+      width: 100%;
+    }
+  }
+
+  .displayed {
+    opacity: 1;
+
+    transition-property: opacity;
+    transition-duration: 1s;
+    transition-timing-function: ease-out;
   }
 }
 
