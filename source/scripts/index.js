@@ -34,7 +34,7 @@ const homePhotographsSlideshow = Elm.Slideshow.init({
       description: 'Another interpretation of a bedroom'
     },
     {
-      url: '../images/wilasa/home/wilasaHome6.jpg',
+      url: '../images/wilasa/home/wilasaHome7.jpg',
       description: 'Rooftop garden in the Sky apartments'
     }
   ]
